@@ -2,6 +2,8 @@ package com.example.eventsearch.ui.theme.screen.home
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -26,9 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import com.example.eventsearch.R
 import com.example.eventsearch.SearchParameters
+import com.example.eventsearch.data.model.SearchEvent
 
 @Composable
-fun SearchScreen(submittedQuery: SearchParameters, modifier: Modifier = Modifier) {
+fun SearchScreen(submittedQuery: SearchParameters, searchResults: List<SearchEvent>, modifier: Modifier = Modifier) {
 
     val categories = listOf(
         "All",
@@ -217,14 +220,34 @@ fun SearchScreen(submittedQuery: SearchParameters, modifier: Modifier = Modifier
                 }
             }
         }
-        Row(modifier = Modifier.fillMaxWidth().weight(0.89f)) {
-            Text(
-                text = submittedQuery.keywordParam,
-                modifier = Modifier
-                    .padding(top = 40.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.89f)
+        ) {
+            if (searchResults.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No events found",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(searchResults) { event ->
+                        SearchResultCard(event = event)
+                    }
+                }
+            }
         }
+
     }
 }

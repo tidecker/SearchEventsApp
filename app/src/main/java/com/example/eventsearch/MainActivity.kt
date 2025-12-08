@@ -18,6 +18,13 @@ import com.example.eventsearch.ui.theme.screen.home.FavoriteEventsScreen
 import com.example.eventsearch.ui.theme.screen.home.SearchScreen
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.eventsearch.data.fetchAutoLocation
+import com.example.eventsearch.data.geocodeLocation
+import com.example.eventsearch.data.model.SearchEvent
+import com.example.eventsearch.data.parseSearchEvents
+import com.example.eventsearch.data.remote.EventsApi
+import kotlinx.coroutines.launch
+
 
 class SearchParameters(
     initialKeyword: String = "",
@@ -38,9 +45,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             EventSearchTheme {
+                val scope = rememberCoroutineScope()
+
                 var showSearch by remember { mutableStateOf(false) }
                 val submittedQuery = remember { SearchParameters() }
                 var searchError by remember { mutableStateOf<String?>(null) }
+
+                var searchResults by remember { mutableStateOf<List<SearchEvent>>(emptyList()) }
+
                 Scaffold(
                     topBar = {
                         TopAppBar(
@@ -139,6 +151,30 @@ class MainActivity : ComponentActivity() {
                                                 // Valid: clear error and perform search
                                                 searchError = null
                                                 // make fetch using submittedQuery
+                                                scope.launch {
+                                                    try {
+                                                        val (lat, lng) =
+                                                            if (submittedQuery.locationParam.isBlank()) {
+                                                                fetchAutoLocation()
+                                                            } else {
+                                                                geocodeLocation(submittedQuery.locationParam)
+                                                            }
+
+                                                        val json = EventsApi.retrofitService.searchEvents(
+                                                            keyword = submittedQuery.keywordParam,
+                                                            category = submittedQuery.categoryParam.ifBlank { "all" },
+                                                            distance = submittedQuery.distanceParam.ifBlank { "10" },
+                                                            lat = lat,
+                                                            lng = lng
+                                                        )
+
+                                                        searchResults = parseSearchEvents(json)
+
+                                                    } catch (e: Exception) {
+                                                        searchError = "Search failed: ${e.message}"
+                                                    }
+                                                }
+
                                             }
                                         }
                                     }) {
@@ -155,7 +191,7 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { innerPadding ->
                     if (showSearch) {
-                        SearchScreen(submittedQuery, Modifier.padding(innerPadding))
+                        SearchScreen(submittedQuery,searchResults, Modifier.padding(innerPadding))
                     } else {
                         FavoriteEventsScreen(Modifier.padding(innerPadding))
                     }

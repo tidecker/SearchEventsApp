@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.StarBorder
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material3.AssistChipDefaults
+import com.example.eventsearch.data.model.SearchEvent
 
 
 @Composable
@@ -100,6 +101,85 @@ fun FavoriteEventCard(event: FavoriteEvent, modifier: Modifier = Modifier) {
                     )
                 }
                 IconButton(onClick = { /* TODO toggle favorite */ }) {
+                    Icon(
+                        imageVector = Icons.Outlined.StarBorder,
+                        contentDescription = "Favorite"
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchResultCard(event: SearchEvent, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
+            ) {
+                AsyncImage(
+                    model = event.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                AssistChip(
+                    onClick = {},
+                    label = { Text(event.categoryLabel.ifBlank { "Music" }) },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp),
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    border = null
+                )
+
+                AssistChip(
+                    onClick = {},
+                    label = { Text(event.dateTimeLabel) },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp),
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    border = null
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = event.name,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = event.venueName,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                // later: favorite button here
+                IconButton(onClick = { /* TODO: toggle favorite */ }) {
                     Icon(
                         imageVector = Icons.Outlined.StarBorder,
                         contentDescription = "Favorite"
