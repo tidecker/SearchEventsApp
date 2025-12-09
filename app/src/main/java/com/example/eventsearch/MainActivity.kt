@@ -94,6 +94,7 @@ class MainActivity : ComponentActivity() {
                             } else {
                                 // add on server
                                 val favorite = FavoriteEvent(
+                                    id = null,
                                     eventId = event.id,
                                     name = event.name,
                                     date = event.dateTimeLabel,

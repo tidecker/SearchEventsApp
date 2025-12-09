@@ -42,6 +42,10 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
+import java.lang.Integer.parseInt
+import java.time.LocalDateTime
+import java.util.Date
 
 @Composable
 fun FavoriteEventsScreen(
@@ -146,6 +150,10 @@ fun FavoriteEventRow(
             )
         }
 
+        Column(  // this gives the middle column the width
+        ) {
+            RelativeTimeText(event.id!!)
+        }
 
         // Right: chevron
         Icon(
@@ -153,6 +161,49 @@ fun FavoriteEventRow(
             contentDescription = "Open details"
         )
     }
+}
+
+fun formatElapsed(ms: Long): String {
+    val sec = ms / 1000
+    val min = ms / (60_000)
+    val hr  = ms / (3_600_000)
+    val day = ms / (86_400_000)
+
+    return when {
+        sec < 60      -> "$sec seconds ago"
+        min == 1L     -> "a minute ago"
+        min < 60      -> "$min minutes ago"
+        hr == 1L      -> "an hour ago"
+        hr < 24       -> "$hr hours ago"
+        day == 1L     -> "a day ago"
+        else          -> "$day days ago"
+    }
+}
+
+@Composable
+fun RelativeTimeText(eventId: String) {
+    // compute once
+    val createdAtMs = remember(eventId) {
+        val hex = eventId.substring(0, 8)
+        val seconds = hex.toLong(16)
+        seconds * 1000
+    }
+
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(createdAtMs) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(1_000)   // update every second
+        }
+    }
+
+    val elapsed = formatElapsed(now - createdAtMs)
+
+    Text(
+        text = elapsed,
+        style = MaterialTheme.typography.bodySmall
+    )
 }
 
 

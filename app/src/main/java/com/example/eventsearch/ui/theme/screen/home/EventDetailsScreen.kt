@@ -6,7 +6,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.outlined.OpenInNew
@@ -34,49 +38,47 @@ fun EventDetailsScreen(
     val tabs = listOf("Details", "Artist", "Venue")
     var selectedTabIndex by remember { mutableStateOf(0) }
 
-    Scaffold(
-        topBar = {
-            Column {
-                TabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier
-                                .tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTabIndex == index,
-                            onClick = { selectedTabIndex = index },
-                            text = { Text(title) }
-                        )
-                    }
+    Scaffold { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding)) {
+
+            Spacer(modifier = Modifier.height(70.dp))
+
+            val tabIcons = listOf(
+                Icons.AutoMirrored.Filled.List,
+                Icons.Default.Person,
+                Icons.Default.LocationOn
+            )
+            TabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(title) },
+                        icon = {
+                            Icon(
+                                imageVector = tabIcons[index],
+                                contentDescription = title
+                            )
+                        }
+                    )
                 }
             }
-        }
-    ) { innerPadding ->
-        when (selectedTabIndex) {
-            0 -> DetailsTab(
-                event = event,
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-            )
-            1 -> ArtistTab(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-            )
-            2 -> VenueTab(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-            )
+
+            when (selectedTabIndex) {
+                0 -> DetailsTab(event)
+                1 -> ArtistTab()
+                2 -> VenueTab()
+            }
         }
     }
 }

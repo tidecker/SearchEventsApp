@@ -29,7 +29,7 @@ interface FavoritesApiService {
     suspend fun getFavorites(): List<FavoriteEvent>
 
     @POST("api/post/favorite")
-    suspend fun addFavorite(@Body favorite: FavoriteEvent): FavoriteEvent
+    suspend fun addFavorite(@Body favorite: FavoriteEvent)
 
     @POST("api/post/remove-favorite")
     suspend fun removeFavorite(@Body body: RemoveFavoriteRequest)
