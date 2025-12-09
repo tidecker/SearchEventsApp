@@ -1,5 +1,6 @@
 package com.example.eventsearch.ui.theme.screen.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -112,9 +113,14 @@ fun FavoriteEventCard(event: FavoriteEvent, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun SearchResultCard(event: SearchEvent, modifier: Modifier = Modifier) {
+fun SearchResultCard(
+    event: SearchEvent,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth()
+        .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface

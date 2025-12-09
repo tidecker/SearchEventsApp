@@ -31,12 +31,16 @@ import com.example.eventsearch.SearchParameters
 import com.example.eventsearch.data.model.SearchEvent
 
 @Composable
-fun SearchScreen(submittedQuery: SearchParameters, searchResults: List<SearchEvent>, modifier: Modifier = Modifier) {
+fun SearchScreen(
+    submittedQuery: SearchParameters,
+    searchResults: List<SearchEvent>,
+    onEventClick: (SearchEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
 
     val categories = listOf(
         "All",
         "Music",
-
         "Sports",
         "Arts & Theater",
         "Film",
@@ -48,6 +52,9 @@ fun SearchScreen(submittedQuery: SearchParameters, searchResults: List<SearchEve
     Column( modifier = modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().weight(0.05f).background(MaterialTheme.colorScheme.primary)) {
             Column(modifier = Modifier.weight(0.66f)) {
+                /******************************************************************************
+                 * LOCATION TEXT FIELD
+                 ******************************************************************************/
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically){
 
                     Spacer(modifier = Modifier.width(10.dp))
@@ -128,7 +135,11 @@ fun SearchScreen(submittedQuery: SearchParameters, searchResults: List<SearchEve
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
+                /******************************************************************************
+                 * DISTANCE TEXT FIELD
+                 ******************************************************************************/
                 Row(verticalAlignment = Alignment.CenterVertically) {
+
 
                     Spacer(modifier = Modifier.width(5.dp))
 
@@ -173,6 +184,9 @@ fun SearchScreen(submittedQuery: SearchParameters, searchResults: List<SearchEve
             }
 
         }
+        /******************************************************************************
+         * CATEGORY SELECT FIELD
+         ******************************************************************************/
         Row(modifier = Modifier.fillMaxWidth().weight(0.06f).background(MaterialTheme.colorScheme.primary)){
             ScrollableTabRow(
                 selectedTabIndex = selectedCategoryIndex,
@@ -208,7 +222,6 @@ fun SearchScreen(submittedQuery: SearchParameters, searchResults: List<SearchEve
                         selected = selectedCategoryIndex == index,
                         onClick = {
                             selectedCategoryIndex = index
-                            submittedQuery.categoryParam = categories[index]
                         },
                         text = {
                             Text(
@@ -220,11 +233,21 @@ fun SearchScreen(submittedQuery: SearchParameters, searchResults: List<SearchEve
                 }
             }
         }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(0.89f)
-        ) {
+
+        /******************************************************************************
+         * SEARCH RESULTS DISPLAY
+         ******************************************************************************/
+        Row(modifier = Modifier.fillMaxWidth().weight(0.89f)) {
+            val selectedCategory = categories[selectedCategoryIndex]
+
+            val filteredResults = if (selectedCategory == "All") {
+                searchResults
+            } else {
+                // Replace `event.segment` with whatever field you use for category
+                searchResults.filter { event ->
+                    event.categoryLabel == selectedCategory
+                }
+            }
             if (searchResults.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -242,8 +265,11 @@ fun SearchScreen(submittedQuery: SearchParameters, searchResults: List<SearchEve
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(searchResults) { event ->
-                        SearchResultCard(event = event)
+                    items(filteredResults) { event ->
+                        SearchResultCard(
+                            event = event,
+                            onClick = { onEventClick(event) }
+                        )
                     }
                 }
             }
