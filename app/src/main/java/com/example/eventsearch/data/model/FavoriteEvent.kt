@@ -7,10 +7,6 @@ import kotlinx.serialization.Serializable
 data class FavoriteEvent(
     // Replace these fields with the actual fields your API returns.
     // Below are common examples based on Ticketmaster/Event data.
-
-    @SerialName("_id")
-    val id: String,
-
     @SerialName("eventId")
     val eventId: String,
 

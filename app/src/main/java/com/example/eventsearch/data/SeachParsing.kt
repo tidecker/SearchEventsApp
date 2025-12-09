@@ -1,6 +1,7 @@
 package com.example.eventsearch.data
 
 import com.example.eventsearch.data.model.SearchEvent
+import com.example.eventsearch.data.model.Seatmap
 import org.json.JSONObject
 import java.time.*
 
@@ -47,6 +48,9 @@ fun parseSearchEvents(json: String): List<SearchEvent> {
             ?.optString("name")
             ?: "—"
 
+        val seatmapStaticUrl = ev.optJSONObject("seatmap")?.optString("staticUrl") ?: ""
+        val seatmap = Seatmap(seatmapStaticUrl)
+
         list.add(
             SearchEvent(
                 id = id,
@@ -55,9 +59,9 @@ fun parseSearchEvents(json: String): List<SearchEvent> {
                 dateTimeLabel = dateTimeLabel,
                 imageUrl = imageUrl,
                 venueName = venueName,
-                sortKey = sortKey
-            )
-        )
+                sortKey = sortKey,
+                seatmap = seatmap
+        ))
     }
 
     // sort ascending by true date/time (like the JSX does)

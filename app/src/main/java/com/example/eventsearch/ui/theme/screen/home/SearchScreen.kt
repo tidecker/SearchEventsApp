@@ -23,11 +23,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import com.example.eventsearch.R
 import com.example.eventsearch.SearchParameters
+import com.example.eventsearch.data.model.FavoriteEvent
 import com.example.eventsearch.data.model.SearchEvent
 
 @Composable
@@ -35,6 +37,8 @@ fun SearchScreen(
     submittedQuery: SearchParameters,
     searchResults: List<SearchEvent>,
     onEventClick: (SearchEvent) -> Unit,
+    toggleFavorite: (SearchEvent) -> Unit,
+    isFavorite: (SearchEvent) -> Boolean,
     modifier: Modifier = Modifier
 ) {
 
@@ -140,7 +144,6 @@ fun SearchScreen(
                  ******************************************************************************/
                 Row(verticalAlignment = Alignment.CenterVertically) {
 
-
                     Spacer(modifier = Modifier.width(5.dp))
 
                     IconButton(
@@ -160,9 +163,16 @@ fun SearchScreen(
                     BasicTextField(
                         value = submittedQuery.distanceParam,
                         onValueChange = { new ->
-                            if (new.all { it.isDigit() }) {
-                                submittedQuery.distanceParam = new        // you can type to change distance
-                            }
+                            // keep only digits
+                            val digits = new.filter { it.isDigit() }
+
+                            // convert to int or fallback to 1
+                            val num = digits.toIntOrNull() ?: 1
+
+                            // clamp to range 1–1000
+                            val fixed = num.coerceIn(1, 1000)
+
+                            submittedQuery.distanceParam = fixed.toString()
                         },
                         singleLine = true,
                         textStyle = MaterialTheme.typography.titleMedium.copy(
@@ -248,15 +258,17 @@ fun SearchScreen(
                     event.categoryLabel == selectedCategory
                 }
             }
-            if (searchResults.isEmpty()) {
+            if (filteredResults.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(80.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No events found",
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Text("No events found")
                 }
             } else {
                 LazyColumn(
@@ -268,7 +280,9 @@ fun SearchScreen(
                     items(filteredResults) { event ->
                         SearchResultCard(
                             event = event,
-                            onClick = { onEventClick(event) }
+                            onClick = { onEventClick(event) },
+                            isFavorite = isFavorite(event),
+                            toggleFavorite = toggleFavorite
                         )
                     }
                 }

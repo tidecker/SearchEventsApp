@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -116,7 +117,9 @@ fun FavoriteEventCard(event: FavoriteEvent, modifier: Modifier = Modifier) {
 fun SearchResultCard(
     event: SearchEvent,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isFavorite: Boolean,
+    toggleFavorite: (SearchEvent) -> Unit
 ) {
     Card(
         modifier = modifier.fillMaxWidth()
@@ -185,9 +188,9 @@ fun SearchResultCard(
                     )
                 }
                 // later: favorite button here
-                IconButton(onClick = { /* TODO: toggle favorite */ }) {
+                IconButton(onClick = { toggleFavorite(event) }) {
                     Icon(
-                        imageVector = Icons.Outlined.StarBorder,
+                        if(isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                         contentDescription = "Favorite"
                     )
                 }
