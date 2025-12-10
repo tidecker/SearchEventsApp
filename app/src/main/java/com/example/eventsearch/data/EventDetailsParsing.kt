@@ -155,6 +155,12 @@ fun parseEventDetails(json: String): EventDetails {
                     )
                 } else null
 
+                val imagesJson = vObj.optJSONArray("images")?.optJSONObject(0).let {
+                    TmImage(url = it?.optString("url", null))
+                }
+                val images  = mutableListOf<TmImage>(imagesJson)
+
+
                 venues += TmVenue(
                     name = vObj.optString("name", null),
                     url = vObj.optString("url", null),
@@ -164,7 +170,8 @@ fun parseEventDetails(json: String): EventDetails {
                     country = country,
                     location = location,
                     boxOfficeInfo = boxOfficeInfo,
-                    generalInfo = generalInfo
+                    generalInfo = generalInfo,
+                    images = images
                 )
             }
         }

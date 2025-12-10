@@ -1,34 +1,18 @@
 package com.example.eventsearch.data
 
+import com.example.eventsearch.data.model.SpotifyAlbum
+import com.example.eventsearch.data.model.SpotifyArtist
+import com.example.eventsearch.data.model.SpotifyDetails
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.NumberFormat
 import java.util.Locale
 
-data class SpotifyAlbum(
-    val id: String,
-    val name: String,
-    val imageUrl: String?,
-    val releaseDate: String?,
-    val totalTracks: Int?,
-    val spotifyUrl: String?,
-)
-
-data class SpotifyArtistInfo(
-    val name: String,
-    val imageUrl: String?,
-    val followersText: String,
-    val popularityPercent: Int,
-    val genreLabel: String,
-    val spotifyUrl: String?,
-    val albums: List<SpotifyAlbum>,
-)
-
 /**
  * Parse the Spotify JSON returned by your backend into a SpotifyArtistInfo.
  * Returns null if we can't find any artist info.
  */
-fun parseSpotifyArtist(json: String, fallbackName: String): SpotifyArtistInfo? {
+fun parseSpotifyInfo(json: String, fallbackName: String): SpotifyDetails? {
     val trimmed = json.trim()
     if (trimmed.startsWith("<!doctype", true) || trimmed.startsWith("<html", true)) {
         // got HTML, not JSON
@@ -67,22 +51,16 @@ fun parseSpotifyArtist(json: String, fallbackName: String): SpotifyArtistInfo? {
         else -> null
     }
 
-    val followersText = artistObj.optString(
-        "followersText",
-        followersNumber?.let { formatFollowers(it) } ?: "N/A"
-    )
-
-    // popularity 0–100
-    val popularity = artistObj.optInt("popularity", 0).coerceIn(0, 100)
-
-    // genre: first from "genreLabel" or "genres"[0]
-    val genreLabel = artistObj.optString(
-        "genreLabel",
+    val genres = artistObj.optString(
+        "genres",
         artistObj.optJSONArray("genres")
             ?.takeIf { it.length() > 0 }
             ?.optString(0, "N/A")
             ?: "N/A"
     )
+
+    // popularity 0–100
+    val popularity = artistObj.optInt("popularity", 0).coerceIn(0, 100)
 
     // spotify URL: either flattened or Spotify-style external_urls.spotify
     val spotifyUrl = artistObj.optString("spotifyUrl", null)
@@ -133,13 +111,18 @@ fun parseSpotifyArtist(json: String, fallbackName: String): SpotifyArtistInfo? {
         }
     }
 
-    return SpotifyArtistInfo(
+    val spotifyArtist = SpotifyArtist(
         name = name,
         imageUrl = imageUrl,
-        followersText = followersText,
-        popularityPercent = popularity,
-        genreLabel = genreLabel,
-        spotifyUrl = spotifyUrl,
+        followers = followersNumber,
+        popularity = popularity,
+        genres = genres.split(",").map { it.trim() },
+        id = null,
+        spotifyUrl = spotifyUrl
+    )
+
+    return SpotifyDetails(
+        artist = spotifyArtist,
         albums = albums
     )
 }

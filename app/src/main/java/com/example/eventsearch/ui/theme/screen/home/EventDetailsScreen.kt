@@ -12,17 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -37,15 +28,14 @@ import com.example.eventsearch.R
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.eventsearch.data.SpotifyAlbum
-import com.example.eventsearch.data.SpotifyArtistInfo
 import com.example.eventsearch.data.model.EventDetails
 import com.example.eventsearch.data.model.FavoriteEvent
 import com.example.eventsearch.data.model.SearchEvent
+import com.example.eventsearch.data.model.SpotifyAlbum
+import com.example.eventsearch.data.model.SpotifyDetails
 import com.example.eventsearch.data.parseEventDetails
-import com.example.eventsearch.data.parseSpotifyArtist
+import com.example.eventsearch.data.parseSpotifyInfo
 import com.example.eventsearch.data.remote.EventsApi
-import com.example.eventsearch.data.remote.FavoritesApi
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -120,7 +110,6 @@ fun EventDetailsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize(),
-                        contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
                     }
@@ -149,7 +138,6 @@ private fun DetailsTab(event: EventDetails, modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState())
     ) {
         // --- Event info card ---
         Card(
@@ -166,7 +154,6 @@ private fun DetailsTab(event: EventDetails, modifier: Modifier = Modifier) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Event",
@@ -394,7 +381,6 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
             modifier = modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            contentAlignment = Alignment.Center
         ) {
             Text("No artist data")
         }
@@ -403,7 +389,7 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
 
     val context = LocalContext.current
 
-    var spotifyInfo by remember { mutableStateOf<SpotifyArtistInfo?>(null) }
+    var spotifyInfo by remember { mutableStateOf<SpotifyDetails?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -412,7 +398,7 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
         try {
             val json = EventsApi.retrofitService.getSpotifyData(artistName)
             Log.d("ArtistTab", "Spotify JSON: $json")
-            spotifyInfo = parseSpotifyArtist(json, artistName)
+            spotifyInfo = parseSpotifyInfo(json, artistName)
             Log.d("ArtistTab", "Parsed spotifyInfo = $spotifyInfo")
         } catch (e: Exception) {
             Log.e("ArtistTab", "Spotify error", e)
@@ -429,7 +415,6 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                 modifier = modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
@@ -440,14 +425,13 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                 modifier = modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                contentAlignment = Alignment.Center
             ) {
                 Text("No artist data")
             }
         }
 
         else -> {
-            val info = spotifyInfo!!
+            val artistInfo = spotifyInfo?.artist
 
             Column(
                 modifier = modifier
@@ -466,11 +450,10 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                     Row(
                         modifier = Modifier
                             .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         AsyncImage(
-                            model = info.imageUrl ?: event.images.firstOrNull()?.url,
-                            contentDescription = info.name,
+                            model = artistInfo?.imageUrl ?: event.images.firstOrNull()?.url,
+                            contentDescription = artistInfo?.name,
                             modifier = Modifier
                                 .size(96.dp)
                                 .aspectRatio(1f)
@@ -485,7 +468,7 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = info.name,
+                                text = artistInfo?.name!!,
                                 style = MaterialTheme.typography.titleLarge,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -495,27 +478,40 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 Text(
-                                    text = "Followers: ${info.followersText}",
+                                    text = "Followers: ${artistInfo?.followers}",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    text = "Popularity: ${info.popularityPercent}%",
+                                    text = "Popularity: ${artistInfo?.popularity}%",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
 
-                            if (info.genreLabel.isNotEmpty()) {
-                                AssistChip(
-                                    onClick = { },
-                                    label = { Text(info.genreLabel) }
-                                )
+                            if (true) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    artistInfo?.genres?.forEach { g ->
+                                        AssistChip(
+                                            onClick = {},
+                                            label = {
+                                                Text(
+                                                    g,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            },
+                                            colors = AssistChipDefaults.assistChipColors(
+                                                containerColor = MaterialTheme.colorScheme.surface,      // matches screen background
+                                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant  // lighter text
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
 
                         // open in Spotify
                         IconButton(
                             onClick = {
-                                info.spotifyUrl?.let { url ->
+                                artistInfo?.spotifyUrl?.let { url ->
                                     val intent =
                                         Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                     context.startActivity(intent)
@@ -540,7 +536,7 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                 Spacer(Modifier.height(12.dp))
 
                 // two-per-row grid
-                info.albums.chunked(2).forEach { rowAlbums ->
+                spotifyInfo?.albums?.chunked(2)?.forEach { rowAlbums ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -570,7 +566,7 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AlbumCard( album: SpotifyAlbum, onClick: () -> Unit, modifier: Modifier = Modifier
+private fun AlbumCard(album: SpotifyAlbum, onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
@@ -593,7 +589,7 @@ private fun AlbumCard( album: SpotifyAlbum, onClick: () -> Unit, modifier: Modif
 
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    text = album.name,
+                    text = album.name!!,
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -617,11 +613,10 @@ private fun AlbumCard( album: SpotifyAlbum, onClick: () -> Unit, modifier: Modif
 @Composable
 private fun VenueTab(event: EventDetails, modifier: Modifier = Modifier) {
     val venue = event.embedded?.venues?.firstOrNull()
+
     if (venue == null) {
         Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Text("No venue information for this event.")
@@ -629,11 +624,19 @@ private fun VenueTab(event: EventDetails, modifier: Modifier = Modifier) {
         return
     }
 
+    val context = LocalContext.current
+    val imageUrl = venue.images?.firstOrNull()?.url
+        //?: event.images.firstOrNull()?.url
+
     val addressLine = buildString {
         venue.address?.line1?.let { append(it) }
         val city = venue.city?.name
         val state = venue.state?.stateCode
-        val country = venue.country?.name
+        val countryName = venue.country?.name
+        val country = when (countryName) {
+            "United States Of America" -> "US"
+            else -> countryName
+        }
         val cityStateCountry = listOfNotNull(city, state, country).joinToString(", ")
         if (cityStateCountry.isNotEmpty()) {
             if (isNotEmpty()) append(", ")
@@ -641,56 +644,62 @@ private fun VenueTab(event: EventDetails, modifier: Modifier = Modifier) {
         }
     }
 
-    Column(
-        modifier = modifier
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+    Box(
+        modifier = modifier.fillMaxSize()       // whole pager page
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)     // fixed at top
+                .padding(16.dp)
+                .fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             )
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                // Big image (using event image as a stand-in for venue logo)
-                AsyncImage(
-                    model = venue.images?.firstOrNull()?.url,
-                    contentDescription = venue.name ?: "Venue image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(20.dp)),
-                    contentScale = ContentScale.Crop
-                )
+            Column(modifier = Modifier.padding(16.dp)) {
 
-                Spacer(Modifier.height(16.dp))
-
-                Text(
-                    text = venue.name ?: "Unknown venue",
-                    style = MaterialTheme.typography.titleLarge
-                )
-
-                Spacer(Modifier.height(4.dp))
-
-                if (addressLine.isNotEmpty()) {
-                    Text(
-                        text = addressLine,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                if (!imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = venue.name ?: "Venue image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(20.dp)),
+                        contentScale = ContentScale.Crop
                     )
+                    Spacer(Modifier.height(16.dp))
                 }
-
-                Spacer(Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    IconButton(onClick = { /* TODO: open venue.url in browser */ }) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = venue.name ?: "Unknown venue",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+
+                        if (addressLine.isNotEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = addressLine,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = {
+                        val url = venue.url ?: event.ticketmasterUrl ?: event.url
+                        if (!url.isNullOrBlank()) {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            context.startActivity(intent)
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
                             contentDescription = "Open venue in browser"
@@ -701,4 +710,3 @@ private fun VenueTab(event: EventDetails, modifier: Modifier = Modifier) {
         }
     }
 }
-

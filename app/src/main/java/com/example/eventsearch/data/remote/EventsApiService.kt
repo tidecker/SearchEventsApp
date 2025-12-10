@@ -38,7 +38,7 @@ interface EventsApiService {
 
     @GET("api/spotify")          // <-- EXACT same path
     suspend fun getSpotifyData(
-        @Query("artist") artistName: String   // <-- EXACT same param name
+        @Query("name") artistName: String   // <-- EXACT same param name
     ): String
 }
 

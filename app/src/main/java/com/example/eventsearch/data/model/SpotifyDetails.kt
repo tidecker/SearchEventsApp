@@ -29,6 +29,9 @@ data class SpotifyArtist(
     @SerialName("genres")
     val genres: List<String> = emptyList(),
 
+    @SerialName("id")
+    val id: String? = null,
+
     @SerialName("spotifyUrl")
     val spotifyUrl: String? = null
 )

@@ -113,8 +113,14 @@ data class TmEmbedded(
 data class TmVenue(
     @SerialName("name")
     val name: String? = null,
+
     @SerialName("url")
     val url: String? = null,
+
+    // ⬇️ add this
+    @SerialName("images")
+    val images: List<TmImage>? = null,
+
     @SerialName("address")
     val address: TmVenueAddress? = null,
     @SerialName("city")
@@ -123,14 +129,22 @@ data class TmVenue(
     val state: TmStateInfo? = null,
     @SerialName("country")
     val country: TmNameHolder? = null,
-    @SerialName("postalCode")
-    val location: TmVenueLocation? = null,
+
+    // (optional to fix later) location / postalCode if you need them
+    @SerialName("postalCode") val postalCode: String? = null,
+    @SerialName("location") val location: TmVenueLocation? = null,
+
     @SerialName("boxOfficeInfo")
     val boxOfficeInfo: TmBoxOfficeInfo? = null,
     @SerialName("generalInfo")
-    val generalInfo: TmGeneralInfo? = null,
-    @SerialName("images")
-    val images: List<TmImage>? = null
+    val generalInfo: TmGeneralInfo? = null
+)
+
+
+@Serializable
+data class TmVenueImage(
+    @SerialName("name")
+    val url: String? = null
 )
 
 @Serializable
