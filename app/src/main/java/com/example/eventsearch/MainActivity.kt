@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -24,6 +25,7 @@ import com.example.eventsearch.ui.theme.screen.home.SearchScreen
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.zIndex
 import com.example.eventsearch.data.fetchAutoLocation
 import com.example.eventsearch.data.geocodeLocation
 import com.example.eventsearch.data.model.FavoriteEvent
@@ -35,6 +37,7 @@ import com.example.eventsearch.data.remote.FavoritesApi
 import com.example.eventsearch.data.remote.RemoveFavoriteRequest
 import com.example.eventsearch.ui.theme.screen.home.EventDetailsScreen
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 
 
 class SearchParameters(
@@ -66,6 +69,9 @@ class MainActivity : ComponentActivity() {
                 var favoritesList by remember { mutableStateOf<List<FavoriteEvent>>(emptyList()) }
                 var statusMessage by remember { mutableStateOf("Loading...") }
                 var cameFromFavorites by remember { mutableStateOf(false) }
+                val coroutineScope = rememberCoroutineScope()
+                var suggestions by remember { mutableStateOf<List<String>>(emptyList()) }
+
 
                 LaunchedEffect(Unit) {
                     statusMessage = "Loading..."
@@ -119,7 +125,9 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {
                         if (selectedEvent != null) {
-                            // --- EVENT DETAILS TOP BAR ---
+                            /**
+                            * --- EVENT DETAILS TOP BAR ---
+                            **/
                             TopAppBar(
                                 /******************************************************************************
                                  * TOP BAR TITLE/TEXT (EVENT NAME)
@@ -177,7 +185,9 @@ class MainActivity : ComponentActivity() {
                             )
 
                         } else {
-                            // --- YOUR EXISTING SEARCH TOP BAR (UNCHANGED) ---
+                            /**
+                             * --- SEARCH EVENT TOP BAR ---
+                             **/
                             TopAppBar(
                                 modifier = Modifier.height(120.dp),
                                 /******************************************************************************
@@ -193,9 +203,22 @@ class MainActivity : ComponentActivity() {
                                         ) {
                                             BasicTextField(
                                                 value = submittedQuery.keywordParam,
-                                                onValueChange = {
-                                                    submittedQuery.keywordParam = it
+                                                onValueChange = { new ->
+                                                    submittedQuery.keywordParam = new
                                                     searchError = null
+
+                                                    if (new.length < 1) {
+                                                        suggestions = emptyList()
+                                                    } else {
+                                                        coroutineScope.launch {
+                                                            try {
+                                                                val json = EventsApi.retrofitService.getSuggestions(new)
+                                                                suggestions = Json.decodeFromString<List<String>>(json)
+                                                            } catch (e: Exception) {
+                                                                suggestions = emptyList()
+                                                            }
+                                                        }
+                                                    }
                                                 },
                                                 singleLine = true,
                                                 textStyle = MaterialTheme.typography.titleLarge.copy(
@@ -319,52 +342,96 @@ class MainActivity : ComponentActivity() {
                     }
 
                 ) { innerPadding ->
-                    when {
-                        selectedEvent != null -> {
-                            // DETAILS SCREEN
-                            EventDetailsScreen(
-                                event = selectedEvent!!,
-                                onBack = { selectedEvent = null },
-                                favoritesList = favoritesList,
-                            )
+                    Box(modifier = Modifier.fillMaxSize()) {
+
+
+
+                        when {
+                            selectedEvent != null -> {
+                                // DETAILS SCREEN
+                                EventDetailsScreen(
+                                    event = selectedEvent!!,
+                                    onBack = { selectedEvent = null },
+                                    favoritesList = favoritesList,
+                                )
+                            }
+                            showSearch -> {
+                                // SEARCH SCREEN
+                                SearchScreen(
+                                    submittedQuery = submittedQuery,
+                                    searchResults = searchResults,
+                                    onEventClick = {
+                                        selectedEvent = it
+                                        cameFromFavorites = false
+                                    },
+                                    toggleFavorite = { toggleFavorite(it) },
+                                    isFavorite = { isFavorite(it) },
+                                    modifier = Modifier.padding(innerPadding)
+                                )
+                            }
+                            else -> {
+                                // HOME / FAVORITES
+                                FavoriteEventsScreen(
+                                    favoritesList = favoritesList,
+                                    statusMessage = statusMessage,
+                                    onFavoriteClick = { fav ->
+                                        selectedEvent = SearchEvent(
+                                            id = fav.eventId,
+                                            name = fav.name,
+                                            categoryLabel = fav.genre,
+                                            dateTimeLabel = fav.date,
+                                            imageUrl = fav.imageUrl,
+                                            venueName = fav.venue,
+                                            sortKey = null,                     // we don't have this in favorites
+                                            seatmap = Seatmap(staticUrl = "")   // placeholder; or real URL if you have it
+                                        )
+                                        cameFromFavorites = true
+                                    },
+                                    modifier = Modifier.padding(innerPadding)
+                                )
+                            }
                         }
-                        showSearch -> {
-                            // SEARCH SCREEN
-                            SearchScreen(
-                                submittedQuery = submittedQuery,
-                                searchResults = searchResults,
-                                onEventClick = {
-                                    selectedEvent = it
-                                    cameFromFavorites = false
+
+                        // SUGGESTIONS SECOND (ON TOP)
+                        if (showSearch && suggestions.isNotEmpty()) {
+                            val visibleSuggestions = suggestions.take(5)
+
+                            SuggestionsDropdown(
+                                suggestions = visibleSuggestions,
+                                onPick = { term ->
+                                    submittedQuery.keywordParam = term
+                                    suggestions = emptyList()
                                 },
-                                toggleFavorite = { toggleFavorite(it) },
-                                isFavorite = { isFavorite(it) },
-                                modifier = Modifier.padding(innerPadding)
-                            )
-                        }
-                        else -> {
-                            // HOME / FAVORITES
-                            FavoriteEventsScreen(
-                                favoritesList = favoritesList,
-                                statusMessage = statusMessage,
-                                onFavoriteClick = { fav ->
-                                    selectedEvent = SearchEvent(
-                                        id = fav.eventId,
-                                        name = fav.name,
-                                        categoryLabel = fav.genre,
-                                        dateTimeLabel = fav.date,
-                                        imageUrl = fav.imageUrl,
-                                        venueName = fav.venue,
-                                        sortKey = null,                     // we don't have this in favorites
-                                        seatmap = Seatmap(staticUrl = "")   // placeholder; or real URL if you have it
-                                    )
-                                    cameFromFavorites = true
-                                },
-                                modifier = Modifier.padding(innerPadding)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp , vertical = 49.dp)
+                                    .offset(y = 72.dp)
+                                    .zIndex(1f)
                             )
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SuggestionsDropdown(
+    suggestions: List<String>,
+    onPick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(modifier = modifier) {
+        Column(Modifier.fillMaxWidth()) {
+            suggestions.forEach { term ->
+                Text(
+                    text = term,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onPick(term) }
+                        .padding(16.dp)
+                )
             }
         }
     }

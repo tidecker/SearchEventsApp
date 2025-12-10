@@ -30,6 +30,11 @@ interface EventsApiService {
     suspend fun getEventDetails(
         @Path("id") id: String
     ): String
+
+    @GET("api/suggest")
+    suspend fun getSuggestions(
+        @Query("keyword") keyword: String
+    ): String
 }
 
 object EventsApi {

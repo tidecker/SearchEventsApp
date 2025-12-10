@@ -1,7 +1,9 @@
 package com.example.eventsearch.ui.theme.screen.home
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -15,6 +17,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun NoFavoritesCard() {
+    Spacer(Modifier.height(15.dp))
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -25,7 +29,7 @@ fun NoFavoritesCard() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 32.dp),
+                .padding(vertical = 15.dp),
             contentAlignment = Alignment.Center
         ) {
             Text("No favorites")

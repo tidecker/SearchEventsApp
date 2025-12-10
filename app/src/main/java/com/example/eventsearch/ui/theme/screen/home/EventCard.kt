@@ -30,89 +30,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material3.AssistChipDefaults
 import com.example.eventsearch.data.model.SearchEvent
 
-
-@Composable
-fun FavoriteEventCard(event: FavoriteEvent, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column {
-            // Top image area – replace with Coil AsyncImage later
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-            ) {
-                AsyncImage(
-                    model = event.imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-
-                // Genre chip
-                AssistChip(
-                    onClick = {},
-                    label = { Text(event.genre.ifBlank { "Music" }) },
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp),
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ),
-                    border = null
-                )
-
-                // Date chip
-                AssistChip(
-                    onClick = {},
-                    label = { Text(event.date) },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp),
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ),
-                    border = null
-                )
-            }
-
-            // Bottom text + star
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = event.name,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = event.venue,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-                IconButton(onClick = { /* TODO toggle favorite */ }) {
-                    Icon(
-                        imageVector = Icons.Outlined.StarBorder,
-                        contentDescription = "Favorite"
-                    )
-                }
-            }
-        }
-    }
-}
-
 @Composable
 fun SearchResultCard(
     event: SearchEvent,
@@ -126,7 +43,7 @@ fun SearchResultCard(
         .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column {
