@@ -128,7 +128,9 @@ data class TmVenue(
     @SerialName("boxOfficeInfo")
     val boxOfficeInfo: TmBoxOfficeInfo? = null,
     @SerialName("generalInfo")
-    val generalInfo: TmGeneralInfo? = null
+    val generalInfo: TmGeneralInfo? = null,
+    @SerialName("images")
+    val images: List<TmImage>? = null
 )
 
 @Serializable

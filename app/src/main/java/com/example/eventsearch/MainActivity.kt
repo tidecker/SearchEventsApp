@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -290,6 +291,8 @@ class MainActivity : ComponentActivity() {
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
                                         IconButton(onClick = {
+                                            suggestions = emptyList()
+
                                             if (!showSearch) {
                                                 showSearch = true
                                                 submittedQuery.keywordParam = ""
@@ -344,8 +347,9 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     Box(modifier = Modifier.fillMaxSize()) {
 
-
-
+                        /******************************************************************************
+                         * SCREEN SWITCHING
+                         ******************************************************************************/
                         when {
                             selectedEvent != null -> {
                                 // DETAILS SCREEN
@@ -392,22 +396,52 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        // SUGGESTIONS SECOND (ON TOP)
+                        /******************************************************************************
+                         * SEARCH SUGGESTIONS
+                         ******************************************************************************/
                         if (showSearch && suggestions.isNotEmpty()) {
-                            val visibleSuggestions = suggestions.take(5)
-
-                            SuggestionsDropdown(
-                                suggestions = visibleSuggestions,
-                                onPick = { term ->
-                                    submittedQuery.keywordParam = term
-                                    suggestions = emptyList()
-                                },
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp , vertical = 49.dp)
-                                    .offset(y = 72.dp)
-                                    .zIndex(1f)
-                            )
+                                    .fillMaxSize()
+                                    .zIndex(1f)          // whole overlay on top
+                            ) {
+                                // transparent background to detect outside taps
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable(
+                                            indication = null,
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        ) {
+                                            suggestions = emptyList()
+                                        }
+                                )
+
+
+                                // your existing dropdown card
+                                Card(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 49.dp)
+                                        .offset(y = 72.dp)
+                                ) {
+                                    Column {
+                                        suggestions.take(5).forEach { term ->
+                                            Text(
+                                                text = term,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        submittedQuery.keywordParam = term
+                                                        suggestions = emptyList()
+                                                    }
+                                                    .padding(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
