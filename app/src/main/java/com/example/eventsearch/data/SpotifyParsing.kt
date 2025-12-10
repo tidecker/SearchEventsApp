@@ -51,13 +51,23 @@ fun parseSpotifyInfo(json: String, fallbackName: String): SpotifyDetails? {
         else -> null
     }
 
-    val genres = artistObj.optString(
-        "genres",
-        artistObj.optJSONArray("genres")
-            ?.takeIf { it.length() > 0 }
-            ?.optString(0, "N/A")
-            ?: "N/A"
-    )
+    val genresList: List<String> = when {
+        // Proper Spotify-style array: ["soft pop", "uk pop", ...]
+        artistObj.has("genres") && artistObj.get("genres") is JSONArray -> {
+            val arr = artistObj.optJSONArray("genres")
+            (0 until (arr?.length() ?: 0)).mapNotNull { i ->
+                arr?.optString(i)?.takeIf { it.isNotBlank() }
+            }
+        }
+        // Fallback: single comma-separated string
+        artistObj.has("genres") -> {
+            artistObj.optString("genres")
+                .split(",")
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+        }
+        else -> emptyList()
+    }
 
     // popularity 0–100
     val popularity = artistObj.optInt("popularity", 0).coerceIn(0, 100)
@@ -116,7 +126,7 @@ fun parseSpotifyInfo(json: String, fallbackName: String): SpotifyDetails? {
         imageUrl = imageUrl,
         followers = followersNumber,
         popularity = popularity,
-        genres = genres.split(",").map { it.trim() },
+        genres = genresList.ifEmpty { listOf("N/A") },
         id = null,
         spotifyUrl = spotifyUrl
     )

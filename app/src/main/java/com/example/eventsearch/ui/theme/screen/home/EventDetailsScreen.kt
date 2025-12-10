@@ -137,220 +137,237 @@ fun EventDetailsScreen(
 private fun DetailsTab(event: EventDetails, modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
-    Column(
+    Box(
+        modifier = modifier.fillMaxSize()
     ) {
-        // --- Event info card ---
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+                .align(Alignment.TopCenter)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = "Event",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-
-                    Row {
-                        // Open in browser
-                        IconButton(onClick = {
-                            val url = event.ticketmasterUrl ?: event.url
-                            if (!url.isNullOrBlank()) {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                context.startActivity(intent)
-                            }
-                        }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                                contentDescription = "Open in browser"
-                            )
-                        }
-
-                        // Share
-                        IconButton(onClick = {
-                            val url = event.ticketmasterUrl ?: event.url
-                            if (!url.isNullOrBlank()) {
-                                val sendIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, url)
-                                    type = "text/plain"
-                                }
-                                val shareIntent = Intent.createChooser(sendIntent, null)
-                                context.startActivity(shareIntent)
-                            }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Outlined.Share,
-                                contentDescription = "Share"
-                            )
-                        }
-                    }
-                }
-
-                HorizontalDivider(
-                    modifier = Modifier
-                        .padding(top = 8.dp, bottom = 12.dp)
+            // --- Event info card ---
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    val rawStatus = event.dates?.status?.code?.uppercase() ?: ""
+                    val isOffSale = rawStatus == "OFFSALE"
 
-                DetailRow(
-                    label = "Date",
-                    value = run {
-                        val date = event.dates?.start?.localDate ?: return@run "N/A"
-                        val time = event.dates?.start?.localTime
-
-                        val localDate = java.time.LocalDate.parse(date)
-
-                        if (time != null) {
-                            val localTime = java.time.LocalTime.parse(time)
-                            val dt = java.time.LocalDateTime.of(localDate, localTime)
-                            dt.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a"))
-                        } else {
-                            localDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
-                        }
-                    }
-                )
-                Spacer(Modifier.height(8.dp))
-
-                val artists = event.embedded?.attractions
-                    ?.mapNotNull { it.name }
-                    ?.joinToString(", ")
-                    ?: "N/A"
-
-                DetailRow(label = "Artists", value = artists)
-
-                Spacer(Modifier.height(8.dp))
-
-                val venueName = event.embedded?.venues?.firstOrNull()?.name ?: "N/A"
-
-                DetailRow(label = "Venue", value = venueName)
-
-                Spacer(Modifier.height(12.dp))
-
-                Text(
-                    text = "Genres",
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Spacer(Modifier.height(4.dp))
-
-                val genreList = event.classifications
-                    ?.firstOrNull()
-                    ?.let { c ->
-                        listOfNotNull(
-                            c.segment?.name,
-                            c.genre?.name,
-                            c.subGenre?.name,
-                            c.type?.name,
-                            c.subType?.name
-                        )
-                    }
-                    ?.filter { it.isNotBlank() && it != "Undefined" }   // remove empty + "Undefined"
-                    ?.distinct()                                        // remove duplicates
-                    ?: emptyList()
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    genreList.forEach { g ->
-                        AssistChip(
-                            onClick = {},
-                            label = {
-                                Text(
-                                    g,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.surface,      // matches screen background
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant  // lighter text
-                            )
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                Text(
-                    text = "Ticket Status",
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Spacer(Modifier.height(4.dp))
-
-                val raw = event.dates?.status?.code?.uppercase() ?: ""
-
-                // Map Ticketmaster codes → required text
-                val statusText = when (raw) {
-                    "ONSALE"   -> "On Sale"
-                    "OFFSALE"  -> "Off Sale"
-                    "CANCELED" -> "Cancelled"
-                    else       -> raw.lowercase().replaceFirstChar { it.uppercase() }
-                }
-
-                // Map codes → colors
-                val containerColor = when (raw) {
-                    "ONSALE"   -> MaterialTheme.colorScheme.primary
-                    "OFFSALE"  -> MaterialTheme.colorScheme.secondary
-                    "CANCELED" -> MaterialTheme.colorScheme.error
-                    else       -> MaterialTheme.colorScheme.surfaceVariant
-                }
-
-                val labelColor = when (raw) {
-                    "ONSALE", "OFFSALE", "CANCELED" ->
-                        MaterialTheme.colorScheme.onPrimary
-                    else ->
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                }
-
-                AssistChip(
-                    onClick = {},
-                    label = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
                         Text(
-                            text = statusText,
-                            color = labelColor
+                            text = "Event",
+                            style = MaterialTheme.typography.titleMedium
                         )
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = containerColor
+
+                        if (!isOffSale) {
+                            Row {
+                                // Open in browser
+                                IconButton(onClick = {
+                                    val url = event.ticketmasterUrl ?: event.url
+                                    if (!url.isNullOrBlank()) {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                        context.startActivity(intent)
+                                    }
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                                        contentDescription = "Open in browser"
+                                    )
+                                }
+
+                                // Share
+                                IconButton(onClick = {
+                                    val url = event.ticketmasterUrl ?: event.url
+                                    if (!url.isNullOrBlank()) {
+                                        val sendIntent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, url)
+                                            type = "text/plain"
+                                        }
+                                        val shareIntent = Intent.createChooser(sendIntent, null)
+                                        context.startActivity(shareIntent)
+                                    }
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Share,
+                                        contentDescription = "Share"
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+
+                    HorizontalDivider(
+                        modifier = Modifier
+                            .padding(top = 8.dp, bottom = 12.dp)
                     )
-                )
+
+                    DetailRow(
+                        label = "Date",
+                        value = run {
+                            val date = event.dates?.start?.localDate ?: return@run "N/A"
+                            val time = event.dates?.start?.localTime
+
+                            val localDate = java.time.LocalDate.parse(date)
+
+                            if (time != null) {
+                                val localTime = java.time.LocalTime.parse(time)
+                                val dt = java.time.LocalDateTime.of(localDate, localTime)
+                                dt.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a"))
+                            } else {
+                                localDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+                            }
+                        }
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    val artists = event.embedded?.attractions
+                        ?.mapNotNull { it.name }
+                        ?.joinToString(", ")
+
+                    if (!artists.isNullOrBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        DetailRow(label = "Artists", value = artists)
+                    }
+
+
+                    val venueName = event.embedded?.venues?.firstOrNull()?.name
+
+                    if (!venueName.isNullOrBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        DetailRow(label = "Venue", value = venueName)
+                    }
+
+
+                    val genreList = event.classifications
+                        ?.firstOrNull()
+                        ?.let { c ->
+                            listOfNotNull(
+                                c.segment?.name,
+                                c.genre?.name,
+                                c.subGenre?.name,
+                                c.type?.name,
+                                c.subType?.name
+                            )
+                        }
+                        ?.filter { it.isNotBlank() && it != "Undefined" }
+                        ?.distinct()
+                        ?: emptyList()
+
+                    if (genreList.isNotEmpty()) {
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = "Genres",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Spacer(Modifier.height(4.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            genreList.forEach { g ->
+                                AssistChip(
+                                    onClick = {},
+                                    label = {
+                                        Text(
+                                            g,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+
+                    Text(
+                        text = "Ticket Status",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Spacer(Modifier.height(4.dp))
+
+                    val statusText = when (rawStatus) {
+                        "ONSALE" -> "On Sale"
+                        "OFFSALE" -> "Off Sale"
+                        "CANCELED" -> "Cancelled"
+                        else -> rawStatus.lowercase().replaceFirstChar { it.uppercase() }
+                    }
+
+                    val containerColor = when (rawStatus) {
+                        "ONSALE" -> MaterialTheme.colorScheme.primary
+                        "OFFSALE" -> MaterialTheme.colorScheme.secondary
+                        "CANCELED" -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+
+                    val labelColor = when (rawStatus) {
+                        "ONSALE", "OFFSALE", "CANCELED" ->
+                            MaterialTheme.colorScheme.onPrimary
+                        else ->
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+
+
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = statusText,
+                                color = labelColor
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = containerColor
+                        )
+                    )
+                }
             }
-        }
 
-        // --- Seatmap card ---
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Column {
-                Text(
-                    text = "Seatmap",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp)
-                )
+            val seatmapUrl = event.seatmap?.staticUrl
 
-                AsyncImage(
-                    model = event.seatmap?.staticUrl,
-                    contentDescription = "Seatmap",
+            if (!seatmapUrl.isNullOrBlank()) {
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(260.dp)
-                        .padding(bottom = 16.dp),
-                    contentScale = ContentScale.Crop
-                )
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column {
+                        Text(
+                            text = "Seatmap",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp)
+                        )
+
+                        AsyncImage(
+                            model = seatmapUrl,
+                            contentDescription = "Seatmap",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                                .heightIn(max = 360.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
             }
         }
-
         Spacer(Modifier.height(16.dp))
     }
 }
@@ -449,13 +466,13 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                 ) {
                     Row(
                         modifier = Modifier
-                            .padding(16.dp),
+                            .padding(top = 16.dp, start = 16.dp, end = 8.dp),
                     ) {
                         AsyncImage(
                             model = artistInfo?.imageUrl ?: event.images.firstOrNull()?.url,
                             contentDescription = artistInfo?.name,
                             modifier = Modifier
-                                .size(96.dp)
+                                .size(72.dp)
                                 .aspectRatio(1f)
                                 .clip(RoundedCornerShape(20.dp)),
                             contentScale = ContentScale.Crop
@@ -467,18 +484,39 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = artistInfo?.name!!,
-                                style = MaterialTheme.typography.titleLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
 
+                            // Name + external icon INLINE
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "Followers: ${artistInfo?.followers}",
+                                    text = artistInfo?.name!!,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                IconButton(
+                                    onClick = {
+                                        artistInfo.spotifyUrl?.let { url ->
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                            context.startActivity(intent)
+                                        }
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                                        contentDescription = "Open in Spotify"
+                                    )
+                                }
+                            }
+
+                            // Followers + popularity
+                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Text(
+                                    text = "Followers: ${"%,d".format(artistInfo?.followers)}",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
@@ -486,44 +524,33 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
-
-                            if (true) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    artistInfo?.genres?.forEach { g ->
-                                        AssistChip(
-                                            onClick = {},
-                                            label = {
-                                                Text(
-                                                    g,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            },
-                                            colors = AssistChipDefaults.assistChipColors(
-                                                containerColor = MaterialTheme.colorScheme.surface,      // matches screen background
-                                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant  // lighter text
-                                            )
-                                        )
-                                    }
-                                }
-                            }
                         }
+                    }
 
-                        // open in Spotify
-                        IconButton(
-                            onClick = {
-                                artistInfo?.spotifyUrl?.let { url ->
-                                    val intent =
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                    context.startActivity(intent)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                                contentDescription = "Open in Spotify"
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    ) {
+                        artistInfo?.genres?.forEach { g ->
+                            AssistChip(
+                                onClick = {},
+                                label = {
+                                    Text(
+                                        g,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    labelColor = MaterialTheme.colorScheme.onSurface
+                                )
                             )
                         }
                     }
+
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -536,30 +563,33 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                 Spacer(Modifier.height(12.dp))
 
                 // two-per-row grid
-                spotifyInfo?.albums?.chunked(2)?.forEach { rowAlbums ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        rowAlbums.forEach { album ->
-                            AlbumCard(
-                                album = album,
-                                onClick = {
-                                    album.spotifyUrl?.let { url ->
-                                        val intent =
-                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                        context.startActivity(intent)
-                                    }
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
+                spotifyInfo?.albums
+                    ?.sortedByDescending { it.releaseDate }    // NEW: sort newest → oldest
+                    ?.chunked(2)
+                    ?.forEach { rowAlbums ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            rowAlbums.forEach { album ->
+                                AlbumCard(
+                                    album = album,
+                                    onClick = {
+                                        album.spotifyUrl?.let { url ->
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                            context.startActivity(intent)
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (rowAlbums.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
-                        if (rowAlbums.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+                        Spacer(Modifier.height(12.dp))
                     }
-                    Spacer(Modifier.height(12.dp))
-                }
+
             }
         }
     }
@@ -595,8 +625,18 @@ private fun AlbumCard(album: SpotifyAlbum, onClick: () -> Unit, modifier: Modifi
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(4.dp))
+                val formattedDate =
+                    album.releaseDate?.let { raw ->
+                        try {
+                            val parsed = java.time.LocalDate.parse(raw)
+                            parsed.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+                        } catch (e: Exception) {
+                            raw // fallback to original
+                        }
+                    } ?: ""
+
                 Text(
-                    text = album.releaseDate ?: "",
+                    text = formattedDate,
                     style = MaterialTheme.typography.bodySmall
                 )
                 if (album.totalTracks != null) {
@@ -652,12 +692,12 @@ private fun VenueTab(event: EventDetails, modifier: Modifier = Modifier) {
                 .align(Alignment.TopCenter)     // fixed at top
                 .padding(16.dp)
                 .fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             )
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(top= 8.dp, start = 16.dp, end = 16.dp)) {
 
                 if (!imageUrl.isNullOrBlank()) {
                     AsyncImage(
@@ -665,8 +705,8 @@ private fun VenueTab(event: EventDetails, modifier: Modifier = Modifier) {
                         contentDescription = venue.name ?: "Venue image",
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp)
-                            .clip(RoundedCornerShape(20.dp)),
+                            .padding(top = 8.dp)
+                            .height(180.dp),
                         contentScale = ContentScale.Crop
                     )
                     Spacer(Modifier.height(16.dp))
@@ -706,6 +746,8 @@ private fun VenueTab(event: EventDetails, modifier: Modifier = Modifier) {
                         )
                     }
                 }
+
+                Spacer(Modifier.height(16.dp))
             }
         }
     }

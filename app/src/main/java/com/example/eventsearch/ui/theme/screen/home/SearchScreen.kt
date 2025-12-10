@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +32,13 @@ import com.example.eventsearch.R
 import com.example.eventsearch.SearchParameters
 import com.example.eventsearch.data.model.FavoriteEvent
 import com.example.eventsearch.data.model.SearchEvent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 
 @Composable
 fun SearchScreen(
@@ -52,6 +60,11 @@ fun SearchScreen(
     )
     var selectedCategoryIndex by remember { mutableStateOf(0) }
     var expanded by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+
+    var locationSuggestions by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isLocSuggestLoading by remember { mutableStateOf(false) }
 
     Column( modifier = modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().weight(0.05f).background(MaterialTheme.colorScheme.primary)) {
@@ -75,7 +88,22 @@ fun SearchScreen(
                     Box(modifier = Modifier.weight(1f)) {
                         BasicTextField(
                             value = submittedQuery.locationParam,
-                            onValueChange = { submittedQuery.locationParam = it },
+                            onValueChange = { new ->
+                                submittedQuery.locationParam = new
+                                expanded = true                    // open menu while typing
+
+                                locationSuggestions = emptyList()
+                                if (new.length >= 2) {             // start searching after 2 chars
+                                    isLocSuggestLoading = true
+                                    scope.launch {
+                                        val result = fetchPlaceSuggestions(new)
+                                        locationSuggestions = result
+                                        isLocSuggestLoading = false
+                                    }
+                                } else {
+                                    isLocSuggestLoading = false
+                                }
+                            },
                             singleLine = true,
                             textStyle = MaterialTheme.typography.titleMedium.copy(
                                 color = MaterialTheme.colorScheme.onPrimary
@@ -117,6 +145,26 @@ fun SearchScreen(
                                     textColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
+
+                            // "Searching..." row
+                            if (isLocSuggestLoading) {
+                                DropdownMenuItem(
+                                    text = { Text("Searching...") },
+                                    onClick = {},
+                                    enabled = false
+                                )
+                            }
+
+                            // Suggestions from Google Places
+                            locationSuggestions.forEach { suggestion ->
+                                DropdownMenuItem(
+                                    text = { Text(suggestion) },
+                                    onClick = {
+                                        submittedQuery.locationParam = suggestion
+                                        expanded = false
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -291,3 +339,32 @@ fun SearchScreen(
 
     }
 }
+
+private const val GOOGLE_MAPS_API_KEY =
+    "AIzaSyACnOgTCfnLXpO6-eeFAtk4j8ttVomjfjc"
+
+suspend fun fetchPlaceSuggestions(input: String): List<String> =
+    withContext(Dispatchers.IO) {
+        val encodedInput = URLEncoder.encode(input, "UTF-8")
+        val urlStr =
+            "https://maps.googleapis.com/maps/api/place/autocomplete/json" +
+                    "?input=$encodedInput&types=(cities)&key=$GOOGLE_MAPS_API_KEY"
+
+        val url = URL(urlStr)
+        val conn = url.openConnection() as HttpURLConnection
+        conn.requestMethod = "GET"
+
+        val response = conn.inputStream.bufferedReader().use { it.readText() }
+        conn.disconnect()
+
+        val json = JSONObject(response)
+        val predictions = json.optJSONArray("predictions") ?: return@withContext emptyList()
+
+        val list = mutableListOf<String>()
+        for (i in 0 until predictions.length()) {
+            val obj = predictions.getJSONObject(i)
+            val description = obj.optString("description", "")
+            if (description.isNotBlank()) list.add(description)
+        }
+        list
+    }
