@@ -1,9 +1,11 @@
 package com.example.eventsearch.data.remote
 
+import com.example.eventsearch.data.model.EventDetails
 import okhttp3.ResponseBody
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 private const val BASE_URL =
@@ -23,6 +25,11 @@ interface EventsApiService {
         @Query("lat") lat: Double,
         @Query("lng") lng: Double
     ): String   // raw JSON for now
+
+    @GET("api/event/{id}")
+    suspend fun getEventDetails(
+        @Path("id") id: String
+    ): String
 }
 
 object EventsApi {

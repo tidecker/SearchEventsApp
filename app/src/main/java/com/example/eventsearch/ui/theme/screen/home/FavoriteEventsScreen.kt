@@ -1,6 +1,7 @@
 package com.example.eventsearch.ui.theme.screen.home
 
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -58,14 +60,35 @@ fun FavoriteEventsScreen(
     val formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy")
 
     Column(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+
+        Spacer(Modifier.height(130.dp))
+        Text(currentDate.format(formatter),
+            modifier = Modifier.padding(horizontal = 16.dp))
+        Spacer(Modifier.height(10.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                )
+        ) {
+            Text("Favorites", fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp))
+        }
+    }
+
+    Spacer(Modifier.height(8.dp))
+
+    Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-        Text(currentDate.format(formatter))
-        Spacer(Modifier.height(24.dp))
-        Text("Favorites", fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
+
+        Spacer(Modifier.height(50.dp))
 
         when {
             statusMessage.isNotEmpty() -> {
@@ -141,7 +164,7 @@ fun FavoriteEventRow(
                 maxLines = 1,
                 overflow = TextOverflow.Visible,
                 modifier = Modifier
-                    .fillMaxWidth()          // constrain horizontally
+                    .padding(end = 15.dp)
                     .basicMarquee()          // now marquee can run
             )
             Text(

@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
                 var selectedEvent by remember { mutableStateOf<SearchEvent?>(null) }
                 var favoritesList by remember { mutableStateOf<List<FavoriteEvent>>(emptyList()) }
                 var statusMessage by remember { mutableStateOf("Loading...") }
+                var cameFromFavorites by remember { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
                     statusMessage = "Loading..."
@@ -151,8 +152,15 @@ class MainActivity : ComponentActivity() {
                                  ******************************************************************************/
                                 navigationIcon = {
                                     IconButton(onClick = {
-                                        selectedEvent = null   // go back to search results
-                                        showSearch = true
+                                        selectedEvent = null
+
+                                        if (cameFromFavorites) {
+                                            // go back to favorites screen
+                                            showSearch = false
+                                        } else {
+                                            // go back to search screen
+                                            showSearch = true
+                                        }
                                     }) {
                                         Icon(
                                             Icons.AutoMirrored.Filled.ArrowBack,
@@ -325,7 +333,10 @@ class MainActivity : ComponentActivity() {
                             SearchScreen(
                                 submittedQuery = submittedQuery,
                                 searchResults = searchResults,
-                                onEventClick = { selectedEvent = it },
+                                onEventClick = {
+                                    selectedEvent = it
+                                    cameFromFavorites = false
+                                },
                                 toggleFavorite = { toggleFavorite(it) },
                                 isFavorite = { isFavorite(it) },
                                 modifier = Modifier.padding(innerPadding)
@@ -347,7 +358,7 @@ class MainActivity : ComponentActivity() {
                                         sortKey = null,                     // we don't have this in favorites
                                         seatmap = Seatmap(staticUrl = "")   // placeholder; or real URL if you have it
                                     )
-                                    showSearch = true
+                                    cameFromFavorites = true
                                 },
                                 modifier = Modifier.padding(innerPadding)
                             )
