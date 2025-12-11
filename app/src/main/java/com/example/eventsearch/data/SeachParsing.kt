@@ -24,11 +24,18 @@ fun parseSearchEvents(json: String): List<SearchEvent> {
         val name = ev.optString("name", "")
 
         val classifications = ev.optJSONArray("classifications")
-        val categoryLabel = classifications
+        val segmentName = classifications
             ?.optJSONObject(0)
             ?.optJSONObject("segment")
             ?.optString("name")
-            ?: "—"
+
+        val categoryLabel = when (segmentName) {
+            "Music" -> "Music"
+            "Sports" -> "Sports"
+            "Arts & Theatre" -> "Arts & Theater"   // normalize spelling to match your tab
+            "Film" -> "Film"
+            else -> "Miscellaneous"
+        }
 
         val start = ev.optJSONObject("dates")
             ?.optJSONObject("start")

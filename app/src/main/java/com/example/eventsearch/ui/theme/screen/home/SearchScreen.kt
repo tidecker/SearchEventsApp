@@ -27,10 +27,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.example.eventsearch.R
 import com.example.eventsearch.SearchParameters
@@ -76,6 +79,9 @@ fun SearchScreen(
     var locationText by remember { mutableStateOf(submittedQuery.locationParam) }
     var showLocDropdown by remember { mutableStateOf(false) }
 
+    var distanceError by remember { mutableStateOf(false) }
+    var hasDistanceFocus by remember { mutableStateOf(false) }
+
     val focusManager = LocalFocusManager.current
 
     Box(modifier = Modifier
@@ -93,10 +99,11 @@ fun SearchScreen(
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.primary)
             ) {
+                /******************************************************************************
+                 * LOCATION TEXT FIELD
+                 ******************************************************************************/
                 Column(modifier = Modifier.weight(0.66f)) {
-                    /******************************************************************************
-                     * LOCATION TEXT FIELD
-                     ******************************************************************************/
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -131,7 +138,7 @@ fun SearchScreen(
                                         isLocSuggestLoading = true
                                         scope.launch {
                                             val result = fetchPlaceSuggestions(new)
-                                            delay(100)
+                                            delay(200)
                                             locationSuggestions = result
                                             isLocSuggestLoading = false
                                         }
@@ -185,7 +192,7 @@ fun SearchScreen(
                         Spacer(modifier = Modifier.width(5.dp))
 
                         IconButton(
-                            onClick = { /* TODO: change distance when icon pressed */ },
+                            onClick = {  },
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
@@ -201,22 +208,33 @@ fun SearchScreen(
                         BasicTextField(
                             value = submittedQuery.distanceParam,
                             onValueChange = { new ->
-                                // keep only digits
                                 val digits = new.filter { it.isDigit() }
 
-                                // convert to int or fallback to 1
-                                val num = digits.toIntOrNull() ?: 1
-
-                                // clamp to range 1–1000
-                                val fixed = num.coerceIn(1, 1000)
-
-                                submittedQuery.distanceParam = fixed.toString()
+                                if (digits.isEmpty()) {
+                                    submittedQuery.distanceParam = ""
+                                    distanceError = true
+                                } else {
+                                    val num = digits.toIntOrNull() ?: 1
+                                    val fixed = num.coerceIn(1, 1000)
+                                    submittedQuery.distanceParam = fixed.toString()
+                                    distanceError = false
+                                }
                             },
                             singleLine = true,
                             textStyle = MaterialTheme.typography.titleMedium.copy(
                                 color = MaterialTheme.colorScheme.onPrimary
                             ),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .onFocusChanged { focusState ->
+                                    hasDistanceFocus = focusState.isFocused
+
+                                    // When user clicks off & field is empty → set to "1"
+                                    if (!focusState.isFocused && submittedQuery.distanceParam.isEmpty()) {
+                                        submittedQuery.distanceParam = "1"
+                                        distanceError = false
+                                    }
+                                }
                         )
 
                         Spacer(modifier = Modifier.width(2.dp))
@@ -228,6 +246,16 @@ fun SearchScreen(
                         )
 
                         Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    if (distanceError) {
+                        Text(
+                            text = "Number required",
+                            color = Color.Red,
+                            fontWeight = MaterialTheme.typography.titleMedium.fontWeight,
+                            fontSize = 9.sp,
+                            lineHeight = 1.sp,   // reduces vertical height
+                            modifier = Modifier.padding(end = 30.dp)
+                        )
                     }
                 }
 

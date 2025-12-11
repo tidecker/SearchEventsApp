@@ -284,7 +284,7 @@ class MainActivity : ComponentActivity() {
                                                 submittedQuery.keywordParam = ""
                                                 submittedQuery.locationParam = ""
                                                 submittedQuery.distanceParam = "10"
-                                                submittedQuery.categoryParam = ""
+                                                submittedQuery.categoryParam = "all"
                                                 searchError = null
                                             }
                                         ) {
@@ -310,10 +310,6 @@ class MainActivity : ComponentActivity() {
                                             // 1) First click just opens the search bar
                                             if (!showSearch) {
                                                 showSearch = true
-                                                submittedQuery.keywordParam = ""
-                                                submittedQuery.locationParam = ""
-                                                submittedQuery.distanceParam = "10"
-                                                submittedQuery.categoryParam = ""
                                                 searchError = null
                                                 return@IconButton
                                             }

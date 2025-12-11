@@ -283,7 +283,7 @@ private fun DetailsTab(event: EventDetails, modifier: Modifier = Modifier) {
                                         )
                                     },
                                     colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        containerColor = MaterialTheme.colorScheme.surface,
                                         labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 )
@@ -315,10 +315,10 @@ private fun DetailsTab(event: EventDetails, modifier: Modifier = Modifier) {
                     }
 
                     val labelColor = when (rawStatus) {
-                        "ONSALE", "OFFSALE", "CANCELED" ->
-                            MaterialTheme.colorScheme.onPrimary
-                        else ->
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        "ONSALE"   -> MaterialTheme.colorScheme.onPrimary
+                        "OFFSALE"  -> MaterialTheme.colorScheme.onSecondary
+                        "CANCELED" -> MaterialTheme.colorScheme.onError
+                        else       -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
 
 
