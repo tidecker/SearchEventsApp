@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -108,8 +109,8 @@ fun EventDetailsScreen(
             when {
                 details == null -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
                     }
@@ -282,7 +283,7 @@ private fun DetailsTab(event: EventDetails, modifier: Modifier = Modifier) {
                                         )
                                     },
                                     colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                         labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 )
@@ -391,6 +392,24 @@ private fun DetailRow(label: String, value: String, modifier: Modifier = Modifie
 private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
     val artistName = event.embedded?.attractions?.firstOrNull()?.name
 
+    val isMusicEvent =
+        event.classifications
+            ?.firstOrNull()
+            ?.segment
+            ?.name
+            ?.equals("Music", ignoreCase = true) == true
+
+    if (!isMusicEvent) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(top = 16.dp)
+        ) {
+            NoArtistBox("No artist data.")
+        }
+        return
+    }
+
     Log.d("ArtistTab", "COMPOSE ArtistTab, artistName = $artistName")
 
     if (artistName == null) {
@@ -399,7 +418,7 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .padding(16.dp),
         ) {
-            Text("No artist data")
+            NoArtistBox("No artist data.")
         }
         return
     }
@@ -432,19 +451,15 @@ private fun ArtistTab(event: EventDetails, modifier: Modifier = Modifier) {
                 modifier = modifier
                     .fillMaxSize()
                     .padding(16.dp),
+                contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
         }
 
         error != null || spotifyInfo == null -> {
-            Box(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-            ) {
-                Text("No artist data")
-            }
+            NoArtistBox("No artist data.")
+            return
         }
 
         else -> {
@@ -651,6 +666,24 @@ private fun AlbumCard(album: SpotifyAlbum, onClick: () -> Unit, modifier: Modifi
 }
 
 @Composable
+private fun NoArtistBox(message: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(vertical = 20.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
 private fun VenueTab(event: EventDetails, modifier: Modifier = Modifier) {
     val venue = event.embedded?.venues?.firstOrNull()
 
@@ -752,3 +785,5 @@ private fun VenueTab(event: EventDetails, modifier: Modifier = Modifier) {
         }
     }
 }
+
+

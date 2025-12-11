@@ -82,6 +82,11 @@ fun FavoriteEventsScreen(
 
     Spacer(Modifier.height(8.dp))
 
+    val sortedFavorites = favoritesList.sortedByDescending { fav ->
+        val hex = fav.id?.substring(0, 8)
+        hex?.toLong(16) ?: 0L
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -94,15 +99,16 @@ fun FavoriteEventsScreen(
             statusMessage.isNotEmpty() -> {
                 Text(statusMessage)
             }
-            favoritesList.isEmpty() -> {
+            sortedFavorites.isEmpty() -> {
                 NoFavoritesCard()
             }
             else -> {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(favoritesList) { event ->
-                        FavoriteEventRow(
+                    items(sortedFavorites) { event ->
+
+                    FavoriteEventRow(
                             event = event,
                             onFavoriteClick = onFavoriteClick
                         )

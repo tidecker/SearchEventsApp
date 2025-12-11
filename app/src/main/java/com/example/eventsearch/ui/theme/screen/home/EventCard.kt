@@ -50,13 +50,13 @@ fun SearchResultCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp),
+                    .height(220.dp),   // was 180.dp – a bit taller so less is cut off
             ) {
                 AsyncImage(
                     model = event.imageUrl,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop   // back to Crop so it looks like screenshot 2
                 )
 
                 AssistChip(
@@ -97,11 +97,11 @@ fun SearchResultCard(
                 ) {
                     Text(
                         text = event.name,
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleSmall
                     )
                     Text(
                         text = event.venueName,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
                 // later: favorite button here

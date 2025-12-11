@@ -3,6 +3,7 @@ package com.example.eventsearch.ui.theme.screen.home
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
@@ -35,6 +37,7 @@ import com.example.eventsearch.SearchParameters
 import com.example.eventsearch.data.model.FavoriteEvent
 import com.example.eventsearch.data.model.SearchEvent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -49,8 +52,9 @@ fun SearchScreen(
     onEventClick: (SearchEvent) -> Unit,
     toggleFavorite: (SearchEvent) -> Unit,
     isFavorite: (SearchEvent) -> Boolean,
-    modifier: Modifier = Modifier
-) {
+    modifier: Modifier = Modifier,
+    isLoading: Boolean           // <--- new param
+){
 
     val categories = listOf(
         "All",
@@ -72,7 +76,15 @@ fun SearchScreen(
     var locationText by remember { mutableStateOf(submittedQuery.locationParam) }
     var showLocDropdown by remember { mutableStateOf(false) }
 
-    Box() {
+    val focusManager = LocalFocusManager.current
+
+    Box(modifier = Modifier
+        .clickable(
+            indication = null,
+            interactionSource = remember { MutableInteractionSource() }
+        ) {
+            focusManager.clearFocus()
+        }) {
 
         // MAIN CONTENT (unchanged)
         Column(modifier = modifier.fillMaxSize()) {
@@ -119,6 +131,7 @@ fun SearchScreen(
                                         isLocSuggestLoading = true
                                         scope.launch {
                                             val result = fetchPlaceSuggestions(new)
+                                            delay(100)
                                             locationSuggestions = result
                                             isLocSuggestLoading = false
                                         }
@@ -293,35 +306,50 @@ fun SearchScreen(
                         event.categoryLabel == selectedCategory
                     }
                 }
-                if (filteredResults.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .height(50.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("No events found")
+                when {
+                    isLoading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(filteredResults) { event ->
-                            SearchResultCard(
-                                event = event,
-                                onClick = { onEventClick(event) },
-                                isFavorite = isFavorite(event),
-                                toggleFavorite = toggleFavorite
-                            )
+
+                    filteredResults.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .height(50.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No events found")
+                        }
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(filteredResults) { event ->
+                                SearchResultCard(
+                                    event = event,
+                                    onClick = { onEventClick(event) },
+                                    isFavorite = isFavorite(event),
+                                    toggleFavorite = toggleFavorite
+                                )
+                            }
                         }
                     }
                 }
+
             }
         }
 
@@ -356,10 +384,19 @@ fun SearchScreen(
                     }
 
                     if (isLocSuggestLoading) {
-                        Text(
-                            "Searching...",
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                        )
+                        ) {
+                            CircularProgressIndicator(
+                                strokeWidth = 2.dp,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .padding(end = 8.dp)
+                            )
+
+                            Text("Searching...")
+                        }
                     }
 
                     locationSuggestions

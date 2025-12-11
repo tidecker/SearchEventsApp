@@ -25,6 +25,9 @@ import com.example.eventsearch.ui.theme.screen.home.FavoriteEventsScreen
 import com.example.eventsearch.ui.theme.screen.home.SearchScreen
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
 import com.example.eventsearch.data.fetchAutoLocation
@@ -60,6 +63,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            var isSearchLoading by remember { mutableStateOf(false) }
+
             EventSearchTheme {
                 val scope = rememberCoroutineScope()
                 var showSearch by remember { mutableStateOf(false) }
@@ -72,6 +77,8 @@ class MainActivity : ComponentActivity() {
                 var cameFromFavorites by remember { mutableStateOf(false) }
                 val coroutineScope = rememberCoroutineScope()
                 var suggestions by remember { mutableStateOf<List<String>>(emptyList()) }
+                val focusRequester = remember { FocusRequester() }
+                val keyboardController = LocalSoftwareKeyboardController.current
 
 
                 LaunchedEffect(Unit) {
@@ -84,6 +91,12 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                LaunchedEffect(showSearch) {
+                    if (showSearch && selectedEvent == null) {
+                        focusRequester.requestFocus()
+                        keyboardController?.show()
+                    }
+                }
 
                 // favorite api call
                 /******************************************************************************
@@ -239,6 +252,7 @@ class MainActivity : ComponentActivity() {
                                                     .fillMaxWidth()
                                                     .padding(top = 11.dp)
                                                     .height(30.dp)
+                                                    .focusRequester(focusRequester)
                                             )
 
                                             if (searchError != null) {
@@ -293,6 +307,7 @@ class MainActivity : ComponentActivity() {
                                         IconButton(onClick = {
                                             suggestions = emptyList()
 
+                                            // 1) First click just opens the search bar
                                             if (!showSearch) {
                                                 showSearch = true
                                                 submittedQuery.keywordParam = ""
@@ -300,36 +315,49 @@ class MainActivity : ComponentActivity() {
                                                 submittedQuery.distanceParam = "10"
                                                 submittedQuery.categoryParam = ""
                                                 searchError = null
-                                            } else {
-                                                if (submittedQuery.keywordParam.isBlank()) {
-                                                    searchError = "Keyword is required"
-                                                } else {
-                                                    searchError = null
-                                                    scope.launch {
-                                                        try {
-                                                            val (lat, lng) =
-                                                                if (submittedQuery.locationParam.isBlank()) {
-                                                                    fetchAutoLocation()
-                                                                } else {
-                                                                    geocodeLocation(submittedQuery.locationParam)
-                                                                }
+                                                return@IconButton
+                                            }
 
-                                                            val json = EventsApi.retrofitService.searchEvents(
-                                                                keyword = submittedQuery.keywordParam,
-                                                                category = "all",
-                                                                distance = submittedQuery.distanceParam.ifBlank { "10" },
-                                                                lat = lat,
-                                                                lng = lng
-                                                            )
+                                            // 2) If keyword is blank, show red error and DO NOT search
+                                            if (submittedQuery.keywordParam.isBlank()) {
+                                                searchError = "Keyword is required"
+                                                // optional: clear results when invalid
+                                                // searchResults = emptyList()
+                                                return@IconButton
+                                            }
 
-                                                            searchResults = parseSearchEvents(json)
+                                            // 3) Otherwise run the search
+                                            searchError = null
+                                            // 3) Otherwise run the search
+                                            searchError = null
+                                            scope.launch {
+                                                try {
+                                                    isSearchLoading = true          // <--- start spinner
+                                                    searchResults = emptyList()     // <--- clear old results
 
-                                                        } catch (e: Exception) {
-                                                            searchError = "Search failed: ${e.message}"
+                                                    val (lat, lng) =
+                                                        if (submittedQuery.locationParam.isBlank()) {
+                                                            fetchAutoLocation()
+                                                        } else {
+                                                            geocodeLocation(submittedQuery.locationParam)
                                                         }
-                                                    }
+
+                                                    val json = EventsApi.retrofitService.searchEvents(
+                                                        keyword = submittedQuery.keywordParam,
+                                                        category = "all",
+                                                        distance = submittedQuery.distanceParam.ifBlank { "10" },
+                                                        lat = lat,
+                                                        lng = lng
+                                                    )
+
+                                                    searchResults = parseSearchEvents(json)
+                                                } catch (e: Exception) {
+                                                    searchError = "Search failed: ${e.message}"
+                                                } finally {
+                                                    isSearchLoading = false         // <--- stop spinner (success or error)
                                                 }
                                             }
+
                                         }) {
                                             Icon(Icons.Default.Search, contentDescription = "Search")
                                         }
@@ -370,7 +398,8 @@ class MainActivity : ComponentActivity() {
                                     },
                                     toggleFavorite = { toggleFavorite(it) },
                                     isFavorite = { isFavorite(it) },
-                                    modifier = Modifier.padding(innerPadding)
+                                    modifier = Modifier.padding(innerPadding),
+                                    isLoading = isSearchLoading   // <--- add this
                                 )
                             }
                             else -> {
