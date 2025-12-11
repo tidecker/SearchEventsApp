@@ -2,6 +2,7 @@ package com.example.eventsearch.ui.theme.screen.home
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.zIndex
 import com.example.eventsearch.R
 import com.example.eventsearch.SearchParameters
 import com.example.eventsearch.data.model.FavoriteEvent
@@ -66,277 +68,318 @@ fun SearchScreen(
     var locationSuggestions by remember { mutableStateOf<List<String>>(emptyList()) }
     var isLocSuggestLoading by remember { mutableStateOf(false) }
 
-    Column( modifier = modifier.fillMaxSize()) {
-        Row(modifier = Modifier.fillMaxWidth().weight(0.05f).background(MaterialTheme.colorScheme.primary)) {
-            Column(modifier = Modifier.weight(0.66f)) {
-                /******************************************************************************
-                 * LOCATION TEXT FIELD
-                 ******************************************************************************/
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically){
+// local text + dropdown visibility for location
+    var locationText by remember { mutableStateOf(submittedQuery.locationParam) }
+    var showLocDropdown by remember { mutableStateOf(false) }
 
-                    Spacer(modifier = Modifier.width(10.dp))
+    Box() {
 
-                    Icon(
-                        imageVector = Icons.Outlined.LocationOn,
-                        contentDescription = "Location",
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
+        // MAIN CONTENT (unchanged)
+        Column(modifier = modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.primary)
+            ) {
+                Column(modifier = Modifier.weight(0.66f)) {
+                    /******************************************************************************
+                     * LOCATION TEXT FIELD
+                     ******************************************************************************/
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
 
-                    Box(modifier = Modifier.weight(1f)) {
-                        BasicTextField(
-                            value = submittedQuery.locationParam,
-                            onValueChange = { new ->
-                                submittedQuery.locationParam = new
-                                expanded = true                    // open menu while typing
+                        Icon(
+                            imageVector = Icons.Outlined.LocationOn,
+                            contentDescription = "Location",
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
 
-                                locationSuggestions = emptyList()
-                                if (new.length >= 2) {             // start searching after 2 chars
-                                    isLocSuggestLoading = true
-                                    scope.launch {
-                                        val result = fetchPlaceSuggestions(new)
-                                        locationSuggestions = result
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Box(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            BasicTextField(
+                                value = locationText,
+                                onValueChange = { new ->
+                                    locationText = new
+                                    submittedQuery.locationParam = new
+
+                                    // control dropdown visibility
+                                    locationSuggestions = emptyList()
+                                    showLocDropdown = new.isNotBlank()
+
+                                    if (new.length >= 1) {
+                                        isLocSuggestLoading = true
+                                        scope.launch {
+                                            val result = fetchPlaceSuggestions(new)
+                                            locationSuggestions = result
+                                            isLocSuggestLoading = false
+                                        }
+                                    } else {
                                         isLocSuggestLoading = false
                                     }
-                                } else {
-                                    isLocSuggestLoading = false
+                                },
+                                singleLine = true,
+                                textStyle = MaterialTheme.typography.titleMedium.copy(
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                decorationBox = { innerTextField ->
+                                    if (locationText.isEmpty()) {
+                                        Text(
+                                            text = "Current Location",
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                color = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                        )
+                                    }
+                                    innerTextField()
                                 }
+                            )
+                        }
+
+                        IconButton(onClick = { showLocDropdown = !showLocDropdown }) {
+                            Icon(
+                                imageVector = if (showLocDropdown) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                contentDescription = "Dropdown",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(32.dp),
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(0.34f)
+                        .padding(top = 5.dp),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    /******************************************************************************
+                     * DISTANCE TEXT FIELD
+                     ******************************************************************************/
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+
+                        Spacer(modifier = Modifier.width(5.dp))
+
+                        IconButton(
+                            onClick = { /* TODO: change distance when icon pressed */ },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.arrow_range_24px),   // double arrow
+                                contentDescription = "Distance",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(5.dp))
+
+                        BasicTextField(
+                            value = submittedQuery.distanceParam,
+                            onValueChange = { new ->
+                                // keep only digits
+                                val digits = new.filter { it.isDigit() }
+
+                                // convert to int or fallback to 1
+                                val num = digits.toIntOrNull() ?: 1
+
+                                // clamp to range 1–1000
+                                val fixed = num.coerceIn(1, 1000)
+
+                                submittedQuery.distanceParam = fixed.toString()
                             },
                             singleLine = true,
                             textStyle = MaterialTheme.typography.titleMedium.copy(
                                 color = MaterialTheme.colorScheme.onPrimary
                             ),
-                            modifier = Modifier.fillMaxWidth(),
-                            decorationBox = { innerTextField ->
-                                if (submittedQuery.locationParam.isEmpty()) {
-                                    Text(
-                                        text = "Current Location",
-                                        style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.onPrimary)
-                                    )
-                                }
-                                innerTextField()
-                            }
+                            modifier = Modifier.weight(1f)
                         )
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier.width(200.dp)
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.LocationOn,
-                                            contentDescription = "Location",
-                                            modifier = Modifier.size(28.dp),
-                                            tint = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Current Location")
-                                    }
-                                },
-                                onClick = {
-                                    submittedQuery.locationParam = ""
-                                    expanded = false
-                                },
-                                colors = MenuDefaults.itemColors(
-                                    textColor = MaterialTheme.colorScheme.onSurface
-                                )
-                            )
 
-                            // "Searching..." row
-                            if (isLocSuggestLoading) {
-                                DropdownMenuItem(
-                                    text = { Text("Searching...") },
-                                    onClick = {},
-                                    enabled = false
-                                )
-                            }
+                        Spacer(modifier = Modifier.width(2.dp))
 
-                            // Suggestions from Google Places
-                            locationSuggestions.forEach { suggestion ->
-                                DropdownMenuItem(
-                                    text = { Text(suggestion) },
-                                    onClick = {
-                                        submittedQuery.locationParam = suggestion
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    IconButton(onClick = { expanded = true }) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
-                            contentDescription = "Dropdown",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(32.dp),
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
-            }
-            Column(
-                modifier = Modifier
-                    .weight(0.34f)
-                    .padding(top = 5.dp),
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.Center
-            ) {
-                /******************************************************************************
-                 * DISTANCE TEXT FIELD
-                 ******************************************************************************/
-                Row(verticalAlignment = Alignment.CenterVertically) {
-
-                    Spacer(modifier = Modifier.width(5.dp))
-
-                    IconButton(
-                        onClick = { /* TODO: change distance when icon pressed */ },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.arrow_range_24px),   // double arrow
-                            contentDescription = "Distance",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(5.dp))
-
-                    BasicTextField(
-                        value = submittedQuery.distanceParam,
-                        onValueChange = { new ->
-                            // keep only digits
-                            val digits = new.filter { it.isDigit() }
-
-                            // convert to int or fallback to 1
-                            val num = digits.toIntOrNull() ?: 1
-
-                            // clamp to range 1–1000
-                            val fixed = num.coerceIn(1, 1000)
-
-                            submittedQuery.distanceParam = fixed.toString()
-                        },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.titleMedium.copy(
+                        Text(
+                            text = "mi",
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
+                        )
 
-                    Spacer(modifier = Modifier.width(2.dp))
-
-                    Text(
-                        text = "mi",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
-            }
-
-        }
-        /******************************************************************************
-         * CATEGORY SELECT FIELD
-         ******************************************************************************/
-        Row(modifier = Modifier.fillMaxWidth().weight(0.06f).background(MaterialTheme.colorScheme.primary)){
-            ScrollableTabRow(
-                selectedTabIndex = selectedCategoryIndex,
-                edgePadding = 0.dp,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                divider = {},
-                indicator = { tabPositions ->
-                    if (selectedCategoryIndex < tabPositions.size) {
-                        val currentTab = tabPositions[selectedCategoryIndex]
-
-                        Box( // Wrapper box to handle positioning and centering
-                            Modifier
-                                .tabIndicatorOffset(currentTab)
-                                .height(3.dp),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            Box( // The actual indicator bar
-                                Modifier
-                                    .fillMaxWidth(0.5f) // 50% width
-                                    .fillMaxHeight()
-                                    .background(color = MaterialTheme.colorScheme.onPrimary, shape = RoundedCornerShape(2.dp))
-                            )
-                        }
+                        Spacer(modifier = Modifier.width(10.dp))
                     }
-                },
+                }
+
+            }
+            /******************************************************************************
+             * CATEGORY SELECT FIELD
+             ******************************************************************************/
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.1f)
+                    .background(MaterialTheme.colorScheme.primary)
             ) {
-                categories.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedCategoryIndex == index,
-                        onClick = {
-                            selectedCategoryIndex = index
-                        },
-                        text = {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.titleMedium
-                            )
+                ScrollableTabRow(
+                    selectedTabIndex = selectedCategoryIndex,
+                    edgePadding = 0.dp,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    divider = {},
+                    indicator = { tabPositions ->
+                        if (selectedCategoryIndex < tabPositions.size) {
+                            val currentTab = tabPositions[selectedCategoryIndex]
+
+                            Box( // Wrapper box to handle positioning and centering
+                                Modifier
+                                    .tabIndicatorOffset(currentTab)
+                                    .height(3.dp),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                Box( // The actual indicator bar
+                                    Modifier
+                                        .fillMaxWidth(0.5f) // 50% width
+                                        .fillMaxHeight()
+                                        .background(
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                            }
                         }
-                    )
-                }
-            }
-        }
-
-        /******************************************************************************
-         * SEARCH RESULTS DISPLAY
-         ******************************************************************************/
-        Row(modifier = Modifier.fillMaxWidth().weight(0.89f)) {
-            val selectedCategory = categories[selectedCategoryIndex]
-
-            val filteredResults = if (selectedCategory == "All") {
-                searchResults
-            } else {
-                // Replace `event.segment` with whatever field you use for category
-                searchResults.filter { event ->
-                    event.categoryLabel == selectedCategory
-                }
-            }
-            if (filteredResults.isEmpty()) {
-                Box(
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
+                        .weight(0.1f)
                 ) {
-                    Text("No events found")
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(filteredResults) { event ->
-                        SearchResultCard(
-                            event = event,
-                            onClick = { onEventClick(event) },
-                            isFavorite = isFavorite(event),
-                            toggleFavorite = toggleFavorite
+                    categories.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedCategoryIndex == index,
+                            onClick = {
+                                selectedCategoryIndex = index
+                            },
+                            text = {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
                         )
+                    }
+                }
+            }
+
+            /******************************************************************************
+             * SEARCH RESULTS DISPLAY
+             ******************************************************************************/
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                val selectedCategory = categories[selectedCategoryIndex]
+
+                val filteredResults = if (selectedCategory == "All") {
+                    searchResults
+                } else {
+                    searchResults.filter { event ->
+                        event.categoryLabel == selectedCategory
+                    }
+                }
+                if (filteredResults.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No events found")
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(filteredResults) { event ->
+                            SearchResultCard(
+                                event = event,
+                                onClick = { onEventClick(event) },
+                                isFavorite = isFavorite(event),
+                                toggleFavorite = toggleFavorite
+                            )
+                        }
                     }
                 }
             }
         }
 
+        // OVERLAY DROPDOWN – floats over tabs/results, pushed down under TopBar + filters
+        if (showLocDropdown && (isLocSuggestLoading || locationSuggestions.isNotEmpty())) {
+            Card(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 160.dp, start = 10.dp, end = 100.dp) // move up/down with this
+                    .zIndex(10f)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                submittedQuery.locationParam = ""
+                                locationText = ""
+                                showLocDropdown = false
+                            }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.LocationOn,
+                            contentDescription = "Location",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Current Location")
+                    }
+
+                    if (isLocSuggestLoading) {
+                        Text(
+                            "Searching...",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                    }
+
+                    locationSuggestions
+                        .take(5)
+                        .forEach { suggestion ->
+                            Text(
+                                text = suggestion,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        submittedQuery.locationParam = suggestion
+                                        locationText = suggestion
+                                        showLocDropdown = false
+                                    }
+                                    .padding(12.dp)
+                            )
+                        }
+                }
+            }
+        }
     }
 }
 
